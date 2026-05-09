@@ -1,0 +1,512 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Quản lý hóa đơn - NEU Admin{% endblock %}
+{% block page_title %}Quản lý hóa đơn{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Danh sách hóa đơn</h5>
+                <select id="tableFilter" class="form-select form-select-sm w-auto" onchange="filterInvoices()">
+                    <option value="all">-- Tất cả các bàn --</option>
+                    {% for table in tables %}
+                    <option value="{{ table.TableNumber }}">{{ table.TableNumber }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Mã HĐ</th>
+                                <th>Khách</th>
+                                <th>Bàn</th>
+                                <th>Tổng tiền</th>
+                                <th>Thanh toán</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in invoices %}
+                            <tr class="invoice-row">
+                                <td>#{{ invoice.InvoiceID }}</td>
+                                <td class="fw-bold">{{ invoice.CustomerName }}</td>
+                                <td class="target-table">{{ invoice.TableNumber }}</td>
+                                <td class="fw-bold text-danger">{{ "{:,.0f}".format(invoice.TotalAmount) }} VNĐ</td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if invoice.PaymentMethod == 'Cash' else 'bg-primary' }}">
+                                        {{ 'Tiền mặt' if invoice.PaymentMethod == 'Cash' else 'Chuyển khoản' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-warning mb-1" title="In Hóa Đơn"
+                                            onclick="showBill({{ invoice.InvoiceID }}, '{{ invoice.CustomerName | replace("'", "\\'") }}', '{{ invoice.TableNumber }}', {{ invoice.TotalAmount }}, '{{ invoice.FormattedDate }}', '{{ invoice.StaffName }}', '{{ invoice.PaymentMethod }}')">
+                                        <i class="fa-solid fa-print"></i> In Bill
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary mb-1 btn-edit-invoice"
+                                            data-id="{{ invoice.InvoiceID }}"
+                                            data-cust="{{ invoice.CustomerID }}"
+                                            data-table="{{ invoice.TableID }}"
+                                            data-total="{{ invoice.TotalAmount }}"
+                                            data-payment="{{ invoice.PaymentMethod }}">Sửa</button>
+                                    <button class="btn btn-sm btn-outline-danger mb-1 btn-delete-invoice"
+                                            data-id="{{ invoice.InvoiceID }}">Xóa</button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" class="text-center text-muted">Chưa có hóa đơn nào.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 position-sticky" style="top: 20px;">
+            <div class="card-header bg-white">
+                <h5 class="mb-0" id="formTitle">Tạo hóa đơn & Tính tiền</h5>
+            </div>
+            <div class="card-body">
+                <form id="invoiceForm">
+                    <input type="hidden" id="invoiceId">
+                    
+                    <div class="mb-2">
+                        <label class="form-label small text-muted mb-1">Khách hàng</label>
+                        <select id="invoiceCustomer" class="form-select" required>
+                            <option value="">Chọn khách hàng...</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.CustomerID }}">{{ customer.CustomerName }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label small text-muted mb-1">Bàn thanh toán</label>
+                        <select id="invoiceTable" class="form-select" required>
+                            <option value="">Chọn bàn...</option>
+                            {% for table in tables %}
+                            <option value="{{ table.TableID }}">{{ table.TableNumber }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="p-3 bg-light rounded mb-3 border" id="cartSection">
+                        <label class="form-label fw-bold text-success mb-2"><i class="fa-solid fa-utensils"></i> Thêm món ăn</label>
+                        <div class="d-flex gap-2 mb-2">
+                            <select id="dishSelect" class="form-select form-select-sm">
+                                <option value="" data-price="0">-- Chọn món --</option>
+                                {% for dish in menu_items %}
+                                <option value="{{ dish.DishID }}" data-price="{{ dish.Price }}" data-name="{{ dish.DishName }}">{{ dish.DishName }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="number" id="dishQty" class="form-control form-control-sm w-25" value="1" min="1" placeholder="SL">
+                            <button type="button" class="btn btn-sm btn-success" onclick="addDishToCart()"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        
+                        <div class="table-responsive" style="max-height: 180px; overflow-y: auto;">
+                            <table class="table table-sm small mb-0 align-middle">
+                                <thead>
+                                    <tr class="text-muted small" style="border-bottom: 1px solid #dee2e6;">
+                                        <th>Món</th>
+                                        <th style="width: 60px;" class="text-center">SL</th>
+                                        <th class="text-end">T.Tiền</th>
+                                        <th class="text-center" style="width: 40px;">Xóa</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cartItems">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tổng tiền (VNĐ)</label>
+                        <input id="invoiceTotal" class="form-control fw-bold text-danger form-control-lg" type="number" placeholder="0" required readonly style="background-color: #e9ecef;">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label small text-muted mb-1">Phương thức thanh toán</label>
+                        <select id="invoicePayment" class="form-select" required>
+                            <option value="Cash">Tiền mặt</option>
+                            <option value="Transfer">Chuyển khoản</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 mb-2 fw-bold" id="btnSubmitInvoice"><i class="fa-solid fa-check-double"></i> Thanh toán & Lưu</button>
+                    <button type="button" class="btn btn-secondary w-100 d-none" id="btnCancelEdit" onclick="resetInvoiceForm()">Hủy thao tác</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="billModal" tabindex="-1">
+    <div class="modal-dialog modal-sm"> 
+        <div class="modal-content rounded-0">
+            <div class="modal-body" id="printArea" style="font-family: 'Courier New', Courier, monospace; color: #000;">
+                <div class="text-center mb-3">
+                    <h5 class="fw-bold mb-0">DATCOM LAB RESTAURANT</h5>
+                    <small>Đại học Kinh tế Quốc dân (NEU)</small><br>
+                    <small>--------------------------------</small><br>
+                    <h6 class="fw-bold mt-1">PHIẾU THANH TOÁN</h6>
+                </div>
+                
+                <div class="small mb-2">
+                    <div><b>Số HĐ:</b> <span id="billId"></span></div>
+                    <div><b>Ngày:</b> <span id="billDate"></span></div>
+                    <div><b>Khách:</b> <span id="billCustomer"></span></div>
+                    <div><b>Bàn:</b> <span id="billTable"></span></div>
+                    <div><b>Thu ngân:</b> <span id="billStaff"></span></div>
+                </div>
+                
+                <div style="border-bottom: 1px dashed #000; margin-bottom: 5px;"></div>
+                
+                <table class="table table-borderless table-sm small mb-1" style="color: #000;">
+                    <thead>
+                        <tr style="border-bottom: 1px dashed #000;">
+                            <th class="p-0 text-start">Món</th>
+                            <th class="p-0 text-center">SL</th>
+                            <th class="p-0 text-end">T.Tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody id="billItemsList">
+                    </tbody>
+                </table>
+                
+                <div style="border-top: 1px dashed #000; margin-top: 5px; padding-top: 5px;"></div>
+                
+                <div class="d-flex justify-content-between fw-bold mb-1">
+                    <span>TỔNG CỘNG:</span>
+                    <span id="billTotal" class="fs-6"></span>
+                </div>
+                <div class="d-flex justify-content-between small">
+                    <span>Thanh toán:</span>
+                    <span id="billPayment"></span>
+                </div>
+                
+                <div class="text-center mt-3 small">
+                    <p class="mb-0"><i>Cảm ơn quý khách & Hẹn gặp lại!</i></p>
+                    <p class="mb-0">Powered by NEU Admin</p>
+                </div>
+            </div>
+            <div class="modal-footer p-2 bg-light">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-sm btn-primary w-50 fw-bold" onclick="printReceipt()"><i class="fa-solid fa-print"></i> In Hóa Đơn</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    body * { visibility: hidden; }
+    #printArea, #printArea * { visibility: visible; }
+    #printArea { position: absolute; left: 0; top: 0; width: 100%; padding: 10px; margin: 0; }
+    .modal-dialog { margin: 0; width: 100%; max-width: 80mm; } 
+}
+</style>
+
+<script>
+// 🌟 BIẾN LÍNH GÁC CHỐNG SPAM CLICK
+let isSubmittingInvoice = false;
+let cart = [];
+
+// ==========================================
+// 0. TÍNH NĂNG LỌC THEO BÀN
+// ==========================================
+function filterInvoices() {
+    const filterVal = document.getElementById('tableFilter').value;
+    const rows = document.querySelectorAll('.invoice-row');
+    
+    rows.forEach(row => {
+        const tableNum = row.querySelector('.target-table').innerText.trim();
+        if (filterVal === 'all' || tableNum === filterVal) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// ==========================================
+// 1. LOGIC GIỎ HÀNG (MINI POS)
+// ==========================================
+function addDishToCart() {
+    const select = document.getElementById('dishSelect');
+    const option = select.options[select.selectedIndex];
+    
+    const dishId = option.value;
+    if (!dishId) return;
+
+    const dishName = option.getAttribute('data-name');
+    const price = parseFloat(option.getAttribute('data-price'));
+    const qty = parseInt(document.getElementById('dishQty').value) || 1;
+
+    const existing = cart.find(item => item.dish_id === dishId);
+    if (existing) {
+        existing.quantity += qty;
+    } else {
+        cart.push({ dish_id: dishId, name: dishName, price: price, quantity: qty });
+    }
+
+    document.getElementById('dishQty').value = 1;
+    select.value = '';
+    renderCart();
+}
+
+function updateQuantity(index, newQuantity) {
+    const val = parseInt(newQuantity);
+    if (val >= 1) {
+        cart[index].quantity = val;
+        renderCart();
+    }
+}
+
+function removeDish(index) {
+    cart.splice(index, 1);
+    renderCart();
+}
+
+function renderCart() {
+    const tbody = document.getElementById('cartItems');
+    let html = '';
+    let totalAmount = 0;
+
+    cart.forEach((item, index) => {
+        const subtotal = item.price * item.quantity;
+        totalAmount += subtotal;
+        
+        html += `
+            <tr class="align-middle border-bottom">
+                <td class="small text-wrap" style="max-width: 100px;">${item.name}</td>
+                <td class="px-0">
+                    <input type="number" class="form-control form-control-sm text-center px-1" 
+                           value="${item.quantity}" min="1" 
+                           onchange="updateQuantity(${index}, this.value)">
+                </td>
+                <td class="text-end fw-bold text-danger small">${subtotal.toLocaleString()}đ</td>
+                <td class="text-center px-0">
+                    <button type="button" class="btn btn-sm btn-danger fw-bold d-flex align-items-center justify-content-center mx-auto" 
+                            onclick="removeDish(${index})" title="Xóa món này" 
+                            style="width: 26px; height: 26px; font-size: 16px; padding-bottom: 3px;">
+                        &times;
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+    
+    if(cart.length > 0) {
+        document.getElementById('invoiceTotal').value = totalAmount;
+    } else {
+        document.getElementById('invoiceTotal').value = '';
+    }
+}
+
+// ==========================================
+// 2. GỬI FORM LƯU HÓA ĐƠN (CÓ SWEETALERT2 + CHỐNG SPAM)
+// ==========================================
+document.getElementById('invoiceForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const id = document.getElementById('invoiceId').value;
+    const staffId = localStorage.getItem('staff_id');
+
+    if (!id && cart.length === 0) {
+        Swal.fire('Chú ý', 'Vui lòng thêm ít nhất 1 món ăn vào hóa đơn!', 'warning');
+        return;
+    }
+
+    // 🌟 Chặn click đúp
+    if (isSubmittingInvoice) return;
+    isSubmittingInvoice = true;
+
+    const btnSubmit = document.getElementById('btnSubmitInvoice');
+    btnSubmit.disabled = true;
+    btnSubmit.innerText = 'Đang xử lý...';
+
+    const data = {
+        customer_id: document.getElementById('invoiceCustomer').value,
+        table_id: document.getElementById('invoiceTable').value,
+        total: document.getElementById('invoiceTotal').value,
+        payment: document.getElementById('invoicePayment').value,
+        staff_id: staffId,
+        items: cart
+    };
+    
+    const url = id ? `/api/invoices/${id}` : '/api/invoices';
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+        const res = await fetch(url, { method: method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+        const result = await res.json();
+        
+        if (res.ok && result.status === 'success') {
+            Swal.fire({
+                icon: 'success',
+                title: id ? 'Đã cập nhật hóa đơn!' : 'Thanh toán thành công!',
+                showConfirmButton: false,
+                timer: 1500
+            }).then(() => window.location.reload());
+        } else {
+            Swal.fire('Lỗi', result.message || 'Không xác định', 'error');
+            isSubmittingInvoice = false;
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = id ? 'Lưu Cập Nhật' : 'Thanh toán & Lưu';
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Lỗi kết nối máy chủ!', 'error');
+        isSubmittingInvoice = false;
+        btnSubmit.disabled = false;
+        btnSubmit.innerText = id ? 'Lưu Cập Nhật' : 'Thanh toán & Lưu';
+    }
+});
+
+// ==========================================
+// 3. SỬA VÀ XÓA HÓA ĐƠN
+// ==========================================
+document.querySelectorAll('.btn-edit-invoice').forEach(button => {
+    button.addEventListener('click', async function() {
+        const id = this.getAttribute('data-id');
+        
+        document.getElementById('invoiceId').value = id;
+        document.getElementById('invoiceCustomer').value = this.getAttribute('data-cust');
+        document.getElementById('invoiceTable').value = this.getAttribute('data-table');
+        
+        let payVal = this.getAttribute('data-payment') === 'Cash' ? 'Cash' : 'Transfer';
+        document.getElementById('invoicePayment').value = payVal;
+        
+        document.getElementById('formTitle').innerText = 'Đang tải dữ liệu món ăn...';
+        const btnSubmit = document.getElementById('btnSubmitInvoice');
+        btnSubmit.disabled = true; 
+        
+        try {
+            const res = await fetch(`/api/invoices/${id}/details`);
+            const result = await res.json();
+            
+            if (res.ok && result.status === 'success') {
+                cart = []; 
+                result.items.forEach(item => {
+                    cart.push({
+                        dish_id: item.DishID.toString(),
+                        name: item.DishName,
+                        price: parseFloat(item.UnitPrice),
+                        quantity: parseInt(item.Quantity)
+                    });
+                });
+                
+                document.getElementById('cartSection').classList.remove('d-none');
+                renderCart();
+            }
+        } catch (error) {
+            Swal.fire('Lỗi', 'Không thể tải chi tiết món ăn!', 'error');
+        }
+
+        document.getElementById('formTitle').innerText = 'Sửa thông tin Hóa đơn';
+        btnSubmit.disabled = false;
+        btnSubmit.innerText = 'Lưu Cập Nhật';
+        btnSubmit.className = 'btn btn-success w-100 mb-2 fw-bold';
+        document.getElementById('btnCancelEdit').classList.remove('d-none');
+    });
+});
+
+function resetInvoiceForm() {
+    document.getElementById('invoiceId').value = '';
+    document.getElementById('invoiceForm').reset();
+    document.getElementById('cartSection').classList.remove('d-none');
+    cart = [];
+    renderCart();
+    
+    document.getElementById('formTitle').innerText = 'Tạo hóa đơn & Tính tiền';
+    const btnSubmit = document.getElementById('btnSubmitInvoice');
+    btnSubmit.innerText = 'Thanh toán & Lưu';
+    btnSubmit.className = 'btn btn-primary w-100 mb-2 fw-bold';
+    document.getElementById('btnCancelEdit').classList.add('d-none');
+}
+
+// 🌟 ĐÃ SỬA: Dùng SweetAlert2 cho nút Xóa
+document.querySelectorAll('.btn-delete-invoice').forEach(button => {
+    button.addEventListener('click', function() {
+        const id = this.getAttribute('data-id');
+        Swal.fire({
+            title: 'Xóa hóa đơn?',
+            text: "Mọi chi tiết món ăn trong hóa đơn này cũng sẽ bị xóa vĩnh viễn!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Đồng ý xóa',
+            cancelButtonText: 'Hủy'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const res = await fetch(`/api/invoices/${id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        Swal.fire('Đã xóa!', 'Hóa đơn đã được hủy bỏ.', 'success').then(() => window.location.reload());
+                    }
+                } catch (error) { 
+                    Swal.fire('Lỗi', 'Không thể xóa hóa đơn.', 'error');
+                }
+            }
+        });
+    });
+});
+
+// ==========================================
+// 4. HIỂN THỊ VÀ IN BILL
+// ==========================================
+async function showBill(id, customer, table, total, date, staff, payment) {
+    document.getElementById('billId').innerText = "#" + id;
+    document.getElementById('billCustomer').innerText = customer;
+    document.getElementById('billTable').innerText = table;
+    document.getElementById('billDate').innerText = date;
+    document.getElementById('billStaff').innerText = staff || 'Admin';
+    document.getElementById('billTotal').innerText = Number(total).toLocaleString() + 'đ';
+    document.getElementById('billPayment').innerText = payment === 'Cash' ? 'Tiền mặt' : 'Chuyển khoản';
+    
+    const tbody = document.getElementById('billItemsList');
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center">Đang tải...</td></tr>';
+    
+    const myModal = new bootstrap.Modal(document.getElementById('billModal'));
+    myModal.show();
+
+    try {
+        const res = await fetch(`/api/invoices/${id}/details`);
+        const result = await res.json();
+        
+        if (res.ok && result.status === 'success') {
+            if(result.items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center fst-italic">Hóa đơn nhập tay (Không có món)</td></tr>';
+                return;
+            }
+            let html = '';
+            result.items.forEach(item => {
+                html += `
+                    <tr>
+                        <td class="p-0 text-start text-wrap" style="max-width: 120px;">${item.DishName}</td>
+                        <td class="p-0 text-center">${item.Quantity}</td>
+                        <td class="p-0 text-end">${Number(item.SubTotal).toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        } else {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-danger">Lỗi tải dữ liệu</td></tr>';
+        }
+    } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-danger">Mất kết nối</td></tr>';
+    }
+}
+
+function printReceipt() {
+    window.print();
+}
+</script>
+{% endblock %}

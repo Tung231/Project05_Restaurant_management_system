@@ -1,0 +1,198 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Quản lý khách hàng - NEU Admin{% endblock %}
+{% block page_title %}Quản lý khách hàng{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Danh sách khách hàng</h5>
+                <div class="input-group input-group-sm w-50">
+                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" id="searchCustomer" class="form-control border-start-0" placeholder="Tìm theo tên hoặc số điện thoại..." onkeyup="filterCustomers()">
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle" id="customerTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tên</th>
+                                <th>Điện thoại</th>
+                                <th>Địa chỉ</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer in customers %}
+                            <tr class="customer-row">
+                                <td>{{ customer.CustomerID }}</td>
+                                <td class="fw-bold target-name">{{ customer.CustomerName }}</td>
+                                <td class="target-phone">{{ customer.PhoneNumber }}</td>
+                                <td>{{ customer.Address }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary btn-edit-customer" 
+                                            data-id="{{ customer.CustomerID }}"
+                                            data-name="{{ customer.CustomerName }}"
+                                            data-phone="{{ customer.PhoneNumber }}"
+                                            data-address="{{ customer.Address }}">Sửa</button>
+                                    <button class="btn btn-sm btn-outline-danger ms-1 btn-delete-customer" 
+                                            data-id="{{ customer.CustomerID }}">Xóa</button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted">Chưa có khách hàng nào.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 position-sticky" style="top: 20px;">
+            <div class="card-header bg-white">
+                <h5 class="mb-0" id="formTitle">Thêm khách mới</h5>
+            </div>
+            <div class="card-body">
+                <form id="customerForm">
+                    <input type="hidden" id="customerId">
+                    <div class="mb-3">
+                        <label class="form-label">Tên khách hàng</label>
+                        <input id="customerName" class="form-control" type="text" placeholder="Nhập tên khách" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Số điện thoại</label>
+                        <input id="customerPhone" class="form-control" type="text" placeholder="Nhập số điện thoại" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Địa chỉ</label>
+                        <input id="customerAddress" class="form-control" type="text" placeholder="Nhập địa chỉ" required>
+                    </div>
+                    <button type="button" class="btn btn-primary w-100 mb-2 fw-bold" id="btnSubmitCustomer" onclick="saveCustomer()">Thêm khách hàng</button>
+                    <button type="button" class="btn btn-secondary w-100 d-none" id="btnCancelEdit" onclick="resetCustomerForm()">Hủy thao tác</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let isSubmittingCustomer = false; 
+
+// 🌟 HÀM TÌM KIẾM NHANH (LIVE SEARCH)
+function filterCustomers() {
+    const input = document.getElementById('searchCustomer').value.toLowerCase();
+    const rows = document.querySelectorAll('.customer-row');
+    
+    rows.forEach(row => {
+        const name = row.querySelector('.target-name').innerText.toLowerCase();
+        const phone = row.querySelector('.target-phone').innerText.toLowerCase();
+        if (name.includes(input) || phone.includes(input)) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}
+
+// Đổ dữ liệu sửa
+document.querySelectorAll('.btn-edit-customer').forEach(button => {
+    button.addEventListener('click', function() {
+        document.getElementById('customerId').value = this.getAttribute('data-id');
+        document.getElementById('customerName').value = this.getAttribute('data-name');
+        document.getElementById('customerPhone').value = this.getAttribute('data-phone');
+        document.getElementById('customerAddress').value = this.getAttribute('data-address');
+        document.getElementById('formTitle').innerText = 'Cập nhật khách hàng';
+        const btnSubmit = document.getElementById('btnSubmitCustomer');
+        btnSubmit.innerText = 'Lưu cập nhật';
+        btnSubmit.className = 'btn btn-success w-100 mb-2 fw-bold'; 
+        document.getElementById('btnCancelEdit').classList.remove('d-none');
+    });
+});
+
+// Lưu khách hàng (Dùng SweetAlert2)
+async function saveCustomer() {
+    const name = document.getElementById('customerName').value.trim();
+    const phone = document.getElementById('customerPhone').value.trim();
+    const address = document.getElementById('customerAddress').value.trim();
+
+    if (!name || !phone || !address) {
+        Swal.fire('Thông báo', 'Vui lòng điền đủ thông tin!', 'warning');
+        return;
+    }
+
+    if (isSubmittingCustomer) return; 
+    isSubmittingCustomer = true; 
+    
+    const btnSubmit = document.getElementById('btnSubmitCustomer');
+    btnSubmit.disabled = true;
+
+    const id = document.getElementById('customerId').value;
+    const url = id ? `/api/customers/${id}` : '/api/customers';
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ name, phone, address })
+        });
+        
+        if (res.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: id ? 'Đã cập nhật!' : 'Đã thêm khách!',
+                showConfirmButton: false,
+                timer: 1500
+            }).then(() => window.location.reload());
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối Server!', 'error');
+        isSubmittingCustomer = false;
+        btnSubmit.disabled = false;
+    }
+}
+
+// Xóa khách hàng (Dùng SweetAlert2)
+document.querySelectorAll('.btn-delete-customer').forEach(button => {
+    button.addEventListener('click', function() {
+        const id = this.getAttribute('data-id');
+        Swal.fire({
+            title: 'Bạn có chắc chắn?',
+            text: "Dữ liệu khách hàng sẽ bị xóa vĩnh viễn!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Đồng ý xóa',
+            cancelButtonText: 'Hủy'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const response = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+                const resData = await response.json();
+                if (resData.status === 'success') {
+                    Swal.fire('Đã xóa!', 'Khách hàng đã được loại bỏ.', 'success').then(() => window.location.reload());
+                } else {
+                    Swal.fire('Lỗi!', resData.message, 'error');
+                }
+            }
+        });
+    });
+});
+
+function resetCustomerForm() {
+    document.getElementById('customerId').value = '';
+    document.getElementById('customerForm').reset();
+    document.getElementById('formTitle').innerText = 'Thêm khách mới';
+    const btnSubmit = document.getElementById('btnSubmitCustomer');
+    btnSubmit.innerText = 'Thêm khách hàng';
+    btnSubmit.className = 'btn btn-primary w-100 mb-2 fw-bold';
+    document.getElementById('btnCancelEdit').classList.add('d-none');
+}
+</script>
+{% endblock %}

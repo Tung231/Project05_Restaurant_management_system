@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}Thực Đơn - NEU Restaurant{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h2 class="fw-bold"><i class="bi bi-book-half"></i> Khám Phá Thực Đơn</h2>
+        <p class="text-muted">Lựa chọn những món ăn tinh túy nhất từ hệ thống</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12 d-flex flex-wrap gap-2" id="categoryFilterContainer">
+        <button class="btn btn-dark rounded-pill px-4 cat-btn active" onclick="filterMenu('all')">Tất cả</button>
+        </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-3 g-4" id="menuGrid">
+    {% for item in items %}
+    <div class="col menu-item-col" data-category="{{ item.CategoryName or 'Khác' }}">
+        <div class="card h-100 shadow-sm border-0">
+            <img src="{{ item.ImageURL }}" class="card-img-top" alt="{{ item.DishName }}" 
+                 style="height: 250px; object-fit: cover;"
+                 onerror="this.src='https://placehold.co/600x400/eeeeee/999999?text=NEU+Restaurant'">
+            
+            <div class="card-body text-center">
+                <span class="badge bg-secondary mb-2 target-category">{{ item.CategoryName or 'Khác' }}</span>
+                <h5 class="card-title fw-bold">{{ item.DishName }}</h5>
+                <p class="card-text text-danger fw-bold fs-5">{{ "{:,.0f}".format(item.Price) }} VNĐ</p>
+                
+                <button class="btn btn-outline-dark btn-sm rounded-pill px-4" 
+                        onclick="openOrderModal('{{ item.DishID }}', '{{ item.DishName | replace("'", "\\'") }}', {{ item.Price }})">
+                    <i class="bi bi-cart-plus"></i> Chọn món
+                </button>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5">
+        <h4 class="text-muted">Chưa có món ăn nào trong thực đơn.</h4>
+    </div>
+    {% endfor %}
+</div>
+
+<button class="btn btn-danger rounded-circle shadow-lg position-fixed" 
+        style="bottom: 30px; right: 30px; width: 60px; height: 60px; z-index: 1000;"
+        data-bs-toggle="offcanvas" data-bs-target="#cartOffcanvas">
+    <i class="bi bi-cart3 fs-4"></i>
+    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark border border-light" id="cartBadge">
+        0
+    </span>
+</button>
+
+<div class="offcanvas offcanvas-end shadow" tabindex="-1" id="cartOffcanvas">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title fw-bold"><i class="bi bi-bag-check"></i> Giỏ hàng của bạn</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column">
+        <div id="cartItemsContainer" class="flex-grow-1 overflow-auto">
+            <p class="text-muted text-center mt-5">Chưa có món nào được chọn.</p>
+        </div>
+        <div class="border-top pt-3 mt-3">
+            <div class="d-flex justify-content-between fw-bold fs-5 mb-3">
+                <span>TỔNG CỘNG:</span>
+                <span class="text-danger" id="cartTotalDisplay">0 VNĐ</span>
+            </div>
+            <button class="btn btn-danger w-100 fw-bold py-2 rounded-pill" onclick="submitOrder()">GỬI ORDER CHO BẾP</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="orderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold fs-4" id="modalDishName">Tên Món Ăn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger fw-bold fs-5 mb-4"><span id="modalDishPrice">0</span> VNĐ</p>
+                
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <span class="fw-bold">Số lượng:</span>
+                    <div class="input-group w-50">
+                        <button class="btn btn-outline-secondary" type="button" onclick="changeQuantity(-1)"><i class="bi bi-dash"></i></button>
+                        <input type="number" class="form-control text-center fw-bold" id="orderQuantity" value="1" min="1" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="changeQuantity(1)"><i class="bi bi-plus"></i></button>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Ghi chú cho bếp (Tùy chọn):</label>
+                    <textarea class="form-control" id="orderNote" rows="2" placeholder="Ví dụ: Không hành, ít cay..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-dark w-100 py-2 rounded-pill fw-bold" onclick="addToCart()">
+                    Thêm vào giỏ hàng - <span id="modalTotalPrice">0</span> VNĐ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==========================================
+// 1. LỌC DANH MỤC THỰC ĐƠN
+// ==========================================
+document.addEventListener("DOMContentLoaded", function() {
+    const categorySet = new Set();
+    document.querySelectorAll('.target-category').forEach(badge => {
+        categorySet.add(badge.innerText.trim());
+    });
+    
+    const filterContainer = document.getElementById('categoryFilterContainer');
+    categorySet.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-outline-dark rounded-pill px-4 cat-btn';
+        btn.innerText = cat;
+        btn.onclick = () => filterMenu(cat, btn);
+        filterContainer.appendChild(btn);
+    });
+});
+
+function filterMenu(category, clickedBtn = null) {
+    // Đổi màu nút
+    document.querySelectorAll('.cat-btn').forEach(btn => {
+        btn.classList.remove('btn-dark', 'active');
+        btn.classList.add('btn-outline-dark');
+    });
+    if(clickedBtn) {
+        clickedBtn.classList.remove('btn-outline-dark');
+        clickedBtn.classList.add('btn-dark', 'active');
+    } else {
+        document.querySelector('.cat-btn').classList.remove('btn-outline-dark');
+        document.querySelector('.cat-btn').classList.add('btn-dark', 'active');
+    }
+
+    // Ẩn/hiện món
+    document.querySelectorAll('.menu-item-col').forEach(col => {
+        if (category === 'all' || col.getAttribute('data-category') === category) {
+            col.style.display = 'block';
+        } else {
+            col.style.display = 'none';
+        }
+    });
+}
+
+// ==========================================
+// 2. LOGIC MODAL CHỌN MÓN
+// ==========================================
+let currentPrice = 0;
+let currentDishId = null;
+
+function openOrderModal(id, name, price) {
+    currentDishId = id;
+    document.getElementById('modalDishName').innerText = name;
+    document.getElementById('modalDishPrice').innerText = price.toLocaleString('vi-VN');
+    document.getElementById('orderQuantity').value = 1;
+    document.getElementById('orderNote').value = '';
+    currentPrice = price;
+    updateTotalPrice();
+    
+    new bootstrap.Modal(document.getElementById('orderModal')).show();
+}
+
+function changeQuantity(change) {
+    let input = document.getElementById('orderQuantity');
+    let newVal = parseInt(input.value) + change;
+    if (newVal >= 1) {
+        input.value = newVal;
+        updateTotalPrice();
+    }
+}
+
+function updateTotalPrice() {
+    let qty = parseInt(document.getElementById('orderQuantity').value);
+    document.getElementById('modalTotalPrice').innerText = (qty * currentPrice).toLocaleString('vi-VN');
+}
+
+// ==========================================
+// 3. LOGIC GIỎ HÀNG (CART)
+// ==========================================
+let customerCart = [];
+
+function addToCart() {
+    let name = document.getElementById('modalDishName').innerText;
+    let qty = parseInt(document.getElementById('orderQuantity').value);
+    let note = document.getElementById('orderNote').value.trim();
+    
+    // Kiểm tra xem món có ghi chú y hệt đã có chưa
+    let existingItem = customerCart.find(item => item.id === currentDishId && item.note === note);
+    if (existingItem) {
+        existingItem.qty += qty;
+    } else {
+        customerCart.push({ id: currentDishId, name: name, price: currentPrice, qty: qty, note: note });
+    }
+    
+    renderCustomerCart();
+    
+    // Đóng Modal và bắn SweetAlert (Toast góc phải)
+    bootstrap.Modal.getInstance(document.getElementById('orderModal')).hide();
+    
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: `Đã thêm ${name} vào giỏ!`,
+        showConfirmButton: false,
+        timer: 1500
+    });
+}
+
+function renderCustomerCart() {
+    let container = document.getElementById('cartItemsContainer');
+    let badge = document.getElementById('cartBadge');
+    let totalDisplay = document.getElementById('cartTotalDisplay');
+    
+    if (customerCart.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center mt-5">Chưa có món nào được chọn.</p>';
+        badge.innerText = '0';
+        totalDisplay.innerText = '0 VNĐ';
+        return;
+    }
+
+    let html = '';
+    let totalAmount = 0;
+    let totalItems = 0;
+
+    customerCart.forEach((item, index) => {
+        let subtotal = item.price * item.qty;
+        totalAmount += subtotal;
+        totalItems += item.qty;
+        
+        html += `
+            <div class="card border-0 border-bottom mb-2 pb-2 rounded-0">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="fw-bold mb-1">${item.name}</h6>
+                        <small class="text-muted d-block">${item.price.toLocaleString('vi-VN')}đ x ${item.qty}</small>
+                        ${item.note ? `<small class="text-danger fst-italic"><i class="bi bi-chat-text"></i> ${item.note}</small>` : ''}
+                    </div>
+                    <div class="text-end">
+                        <p class="fw-bold text-danger mb-1">${subtotal.toLocaleString('vi-VN')}đ</p>
+                        <button class="btn btn-sm btn-light text-danger p-1" onclick="removeCartItem(${index})"><i class="bi bi-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+    badge.innerText = totalItems;
+    totalDisplay.innerText = totalAmount.toLocaleString('vi-VN') + ' VNĐ';
+}
+
+function removeCartItem(index) {
+    customerCart.splice(index, 1);
+    renderCustomerCart();
+}
+
+// 4. CHỐT ĐƠN ẢO (Mô phỏng gửi bếp)
+function submitOrder() {
+    if (customerCart.length === 0) {
+        Swal.fire('Giỏ hàng trống', 'Bạn chưa chọn món nào cả!', 'info');
+        return;
+    }
+    
+    Swal.fire({
+        title: 'Xác nhận gọi món?',
+        text: "Các món sẽ được gửi trực tiếp xuống bếp.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Gửi Order ngay',
+        cancelButtonText: 'Xem lại'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Đóng offcanvas
+            bootstrap.Offcanvas.getInstance(document.getElementById('cartOffcanvas')).hide();
+            
+            // Hiện thông báo thành công
+            Swal.fire({
+                icon: 'success',
+                title: 'Order Thành Công!',
+                text: 'Bếp đã nhận đơn. Vui lòng chờ trong giây lát!',
+                showConfirmButton: false,
+                timer: 2500
+            });
+            
+            // Xóa sạch giỏ hàng
+            customerCart = [];
+            renderCustomerCart();
+        }
+    });
+}
+</script>
+{% endblock %}

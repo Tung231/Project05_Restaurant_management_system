@@ -1,0 +1,322 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Quản lý đặt bàn - NEU Admin{% endblock %}
+{% block page_title %}Quản lý đặt bàn{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Danh sách yêu cầu đặt bàn</h5>
+                <select id="tableFilter" class="form-select form-select-sm w-auto" onchange="filterReservations()">
+                    <option value="all">-- Tất cả các bàn --</option>
+                    {% for table in tables %}
+                    <option value="{{ table.TableNumber }}">{{ table.TableNumber }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Khách</th>
+                                <th>Bàn</th>
+                                <th>Thời gian</th>
+                                <th>Số khách</th>
+                                <th>Ghi chú</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reservation in reservations %}
+                            <tr class="reservation-row">
+                                <td>{{ reservation.ReservationID }}</td>
+                                <td class="fw-bold">{{ reservation.CustomerName }}</td>
+                                <td class="target-table">{{ reservation.TableNumber }}</td>
+                                <td>{{ reservation.FormattedTime }}</td>
+                                <td>{{ reservation.GuestCount }}</td>
+                                <td class="text-muted small text-wrap" style="max-width: 150px;">{{ reservation.Notes or '' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary mb-1 btn-edit-res" 
+                                            data-id="{{ reservation.ReservationID }}"
+                                            data-cust="{{ reservation.CustomerID }}"
+                                            data-table="{{ reservation.TableID }}"
+                                            data-tablenum="{{ reservation.TableNumber }}"
+                                            data-cap="{{ reservation.Capacity }}"
+                                            data-time="{{ reservation.RawDateTime }}"
+                                            data-guests="{{ reservation.GuestCount }}"
+                                            data-notes="{{ reservation.Notes or '' }}">Sửa</button>
+                                    <button class="btn btn-sm btn-outline-danger mb-1 btn-delete-res" 
+                                            data-id="{{ reservation.ReservationID }}">Xóa</button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="7" class="text-center text-muted">Chưa có yêu cầu đặt bàn.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 position-sticky" style="top: 20px;">
+            <div class="card-header bg-white">
+                <h5 class="mb-0" id="formTitle">Tạo đặt bàn mới</h5>
+            </div>
+            <div class="card-body">
+                <form id="reservationForm">
+                    <input type="hidden" id="reservationId">
+                    <div class="mb-3">
+                        <label class="form-label">Khách hàng</label>
+                        <select id="reservationCustomer" class="form-select" required>
+                            <option value="">Chọn khách hàng</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.CustomerID }}">{{ customer.CustomerName }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Bàn</label>
+                        <select id="reservationTable" class="form-select" required onchange="updateGuestLimit()">
+                            <option value="" data-capacity="0">Chọn bàn</option>
+                            {% for table in tables %}
+                            <option value="{{ table.TableID }}" data-capacity="{{ table.Capacity }}">{{ table.TableNumber }} (Tối đa: {{ table.Capacity }} khách)</option>
+                            {% endfor %}
+                        </select>
+                        
+                        <div id="tableScheduleWarning" class="alert alert-warning mt-2 d-none py-2 small border-warning">
+                            <strong><i class="fa-solid fa-clock"></i> Lịch sắp tới của bàn này:</strong>
+                            <ul id="scheduleList" class="mb-0 ps-3 mt-1"></ul>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Ngày giờ</label>
+                        <input id="reservationDatetime" class="form-control" type="datetime-local" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Số lượng khách</label>
+                        <input id="reservationGuests" class="form-control" type="number" min="1" placeholder="Số khách" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Ghi chú (Tùy chọn)</label>
+                        <textarea id="reservationNotes" class="form-control" rows="2" placeholder="VD: Có trẻ em, muốn ngồi gần cửa sổ..."></textarea>
+                    </div>
+                    
+                    <button type="button" class="btn btn-primary w-100 mb-2" id="btnSubmitRes" onclick="saveReservation()">Tạo đặt bàn</button>
+                    <button type="button" class="btn btn-secondary w-100 d-none" id="btnCancelRes" onclick="resetResForm()">Hủy sửa</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Biến lính gác chống Spam
+let isSubmittingRes = false;
+// Lấy danh sách lịch từ Python (Giữ nguyên)
+const futureReservations = {{ future_res | tojson | safe }};
+
+// ==========================================
+// 1. LỌC ĐẶT BÀN (FRONTEND)
+// ==========================================
+function filterReservations() {
+    const filterVal = document.getElementById('tableFilter').value;
+    const rows = document.querySelectorAll('.reservation-row');
+    
+    rows.forEach(row => {
+        const tableNum = row.querySelector('.target-table').innerText.trim();
+        if (filterVal === 'all' || tableNum === filterVal) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// ==========================================
+// 2. CẢNH BÁO SỨC CHỨA & LỊCH TRÙNG
+// ==========================================
+function updateGuestLimit() {
+    const tableSelect = document.getElementById('reservationTable');
+    const selectedOption = tableSelect.options[tableSelect.selectedIndex];
+    const maxCapacity = parseInt(selectedOption.getAttribute('data-capacity')) || 0;
+    const guestInput = document.getElementById('reservationGuests');
+
+    if (maxCapacity > 0) {
+        guestInput.max = maxCapacity;
+        guestInput.placeholder = `Tối đa ${maxCapacity} khách`;
+        if (parseInt(guestInput.value) > maxCapacity) {
+            guestInput.value = maxCapacity;
+        }
+    }
+
+    const tableId = tableSelect.value;
+    const warningDiv = document.getElementById('tableScheduleWarning');
+    const scheduleList = document.getElementById('scheduleList');
+    
+    if (tableId) {
+        const bookings = futureReservations.filter(r => r.TableID == tableId);
+        if (bookings.length > 0) {
+            scheduleList.innerHTML = bookings.map(b => `<li><b class="text-danger">${b.FormattedTime}</b> - Khách: ${b.CustomerName}</li>`).join('');
+            warningDiv.classList.remove('d-none');
+        } else {
+            warningDiv.classList.add('d-none');
+        }
+    } else {
+        warningDiv.classList.add('d-none');
+    }
+}
+
+// ==========================================
+// 3. NẠP DỮ LIỆU SỬA FORM
+// ==========================================
+document.querySelectorAll('.btn-edit-res').forEach(button => {
+    button.addEventListener('click', function() {
+        document.getElementById('reservationId').value = this.getAttribute('data-id');
+        document.getElementById('reservationCustomer').value = this.getAttribute('data-cust');
+        
+        const tableId = this.getAttribute('data-table');
+        const tableSelect = document.getElementById('reservationTable');
+        
+        let optionExists = Array.from(tableSelect.options).some(opt => opt.value == tableId);
+        if (!optionExists) {
+            const opt = document.createElement('option');
+            opt.value = tableId;
+            opt.setAttribute('data-capacity', this.getAttribute('data-cap'));
+            opt.text = `${this.getAttribute('data-tablenum')} (Bàn hiện tại)`;
+            opt.className = "text-primary fw-bold";
+            tableSelect.add(opt);
+        }
+        tableSelect.value = tableId;
+        
+        document.getElementById('reservationDatetime').value = this.getAttribute('data-time');
+        document.getElementById('reservationGuests').value = this.getAttribute('data-guests');
+        document.getElementById('reservationNotes').value = this.getAttribute('data-notes');
+        
+        updateGuestLimit(); 
+        
+        document.getElementById('formTitle').innerText = 'Sửa thông tin đặt bàn';
+        const btnSubmit = document.getElementById('btnSubmitRes');
+        btnSubmit.innerText = 'Cập nhật đặt bàn';
+        btnSubmit.classList.replace('btn-primary', 'btn-success');
+        document.getElementById('btnCancelRes').classList.remove('d-none');
+    });
+});
+
+function resetResForm() {
+    document.getElementById('reservationId').value = '';
+    document.getElementById('reservationForm').reset();
+    document.getElementById('formTitle').innerText = 'Tạo đặt bàn mới';
+    
+    const btnSubmit = document.getElementById('btnSubmitRes');
+    btnSubmit.innerText = 'Tạo đặt bàn';
+    btnSubmit.classList.replace('btn-success', 'btn-primary');
+    
+    document.getElementById('btnCancelRes').classList.add('d-none');
+    document.getElementById('tableScheduleWarning').classList.add('d-none');
+}
+
+// ==========================================
+// 4. LƯU ĐẶT BÀN (SWEETALERT2 + CHỐNG SPAM)
+// ==========================================
+async function saveReservation() {
+    const customer_id = document.getElementById('reservationCustomer').value;
+    const table_id = document.getElementById('reservationTable').value;
+    const datetime = document.getElementById('reservationDatetime').value;
+    const guests = document.getElementById('reservationGuests').value;
+    const notes = document.getElementById('reservationNotes').value;
+
+    if (!customer_id || !table_id || !datetime || !guests) {
+        Swal.fire('Thông báo', 'Vui lòng điền đầy đủ Khách, Bàn, Ngày giờ và Số lượng khách!', 'warning');
+        return;
+    }
+
+    if (isSubmittingRes) return;
+    isSubmittingRes = true;
+
+    const btnSubmit = document.getElementById('btnSubmitRes');
+    btnSubmit.disabled = true;
+    btnSubmit.innerText = 'Đang xử lý...';
+
+    const id = document.getElementById('reservationId').value;
+    const data = { customer_id, table_id, datetime, guests, notes };
+
+    const url = id ? `/api/reservations/${id}` : '/api/reservations';
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        
+        if (res.ok && result.status === 'success') {
+            Swal.fire({
+                icon: 'success',
+                title: id ? 'Đã cập nhật lịch đặt!' : 'Đã tạo lịch đặt bàn!',
+                showConfirmButton: false,
+                timer: 1500
+            }).then(() => window.location.reload());
+        } else {
+            // 🌟 CẢNH BÁO TỪ BỨC TƯỜNG LỬA (Trùng lịch 2 tiếng)
+            Swal.fire({
+                title: 'Lịch bị trùng!',
+                text: result.message,
+                icon: 'error',
+                confirmButtonColor: '#d33'
+            });
+            isSubmittingRes = false;
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = id ? 'Cập nhật đặt bàn' : 'Tạo đặt bàn';
+        }
+    } catch (error) {
+        Swal.fire('Lỗi', 'Không thể kết nối Server!', 'error');
+        isSubmittingRes = false;
+        btnSubmit.disabled = false;
+        btnSubmit.innerText = id ? 'Cập nhật đặt bàn' : 'Tạo đặt bàn';
+    }
+}
+
+// ==========================================
+// 5. XÓA ĐẶT BÀN (SWEETALERT2)
+// ==========================================
+document.querySelectorAll('.btn-delete-res').forEach(button => {
+    button.addEventListener('click', function() {
+        const id = this.getAttribute('data-id');
+        Swal.fire({
+            title: 'Hủy đặt bàn?',
+            text: "Lịch giữ bàn này sẽ bị xóa. Bạn có chắc chắn?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Đồng ý hủy',
+            cancelButtonText: 'Không'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/api/reservations/${id}`, { method: 'DELETE' });
+                    const resData = await response.json();
+                    if (response.ok && resData.status === 'success') {
+                        Swal.fire('Đã hủy!', 'Lịch đặt bàn đã được xóa.', 'success').then(() => window.location.reload());
+                    } else {
+                        Swal.fire('Lỗi!', resData.message, 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Lỗi', 'Mất kết nối với máy chủ.', 'error');
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Sơ Đồ Bàn - NEU Restaurant{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="fw-bold"><i class="bi bi-layout-split"></i> Sơ Đồ Bàn</h2>
+        <p class="text-muted">Kiểm tra trạng thái bàn và click vào bàn trống (màu xanh) để đặt bàn trực tiếp.</p>
+    </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for table in tables %}
+    <div class="col">
+        <!-- Nếu bàn trống, thêm class click-able và gọi hàm JS -->
+        <div class="p-3 bg-white rounded shadow-sm border {% if table.Status == 'Available' %}border-success" style="cursor: pointer;" onclick="openBookingModal('{{ table.TableID }}', '{{ table.TableNumber }}')" {% else %}border-warning opacity-75"{% endif %}>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <!-- Đã xóa chữ "Bàn" dư thừa ở đây -->
+                <strong class="fs-5">{{ table.TableNumber }}</strong>
+                
+                {% if table.Status == 'Available' %}
+                    <span class="badge bg-success px-3 py-2">Trống</span>
+                {% elif table.Status == 'Reserved' %}
+                    <span class="badge bg-warning text-dark px-3 py-2">Đã đặt</span>
+                {% else %}
+                    <span class="badge bg-danger px-3 py-2">Đang phục vụ</span>
+                {% endif %}
+            </div>
+            <p class="mb-0 text-muted">Sức chứa: <strong>{{ table.Capacity }}</strong> khách</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal Đặt Bàn Dành Cho Khách -->
+<div class="modal fade" id="bookingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Xác nhận đặt <span id="modalTableNumber"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="clientBookingForm">
+                    <input type="hidden" id="bookingTableId">
+                    <div class="mb-3">
+                        <label class="form-label">Tên của bạn</label>
+                        <input type="text" class="form-control" id="bookingName" required placeholder="Nhập tên người đặt">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Số điện thoại</label>
+                        <input type="text" class="form-control" id="bookingPhone" required placeholder="Nhập số điện thoại">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Thời gian đến</label>
+                            <input type="datetime-local" class="form-control" id="bookingTime" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Số khách</label>
+                            <input type="number" class="form-control" id="bookingGuests" value="2" min="1" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-success" onclick="submitClientBooking()">Xác nhận đặt bàn</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openBookingModal(tableId, tableNumber) {
+        document.getElementById('bookingTableId').value = tableId;
+        document.getElementById('modalTableNumber').innerText = tableNumber;
+        var myModal = new bootstrap.Modal(document.getElementById('bookingModal'));
+        myModal.show();
+    }
+
+    function submitClientBooking() {
+        // Trong thực tế, hàm này sẽ gọi API POST /reservations/
+        // Tạm thời hiển thị thông báo để làm giao diện
+        alert("Gửi yêu cầu đặt " + document.getElementById('modalTableNumber').innerText + " thành công! Nhà hàng sẽ liên hệ lại để xác nhận.");
+        var myModal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+        myModal.hide();
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Quản lý bàn - NEU Admin{% endblock %}
+{% block page_title %}Quản lý bàn{% endblock %}
+
+{% block content %}
+<div id="tableMessage"></div>
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Bảng trạng thái bàn</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <!-- Thêm onclick và con trỏ chuột pointer để sắp xếp -->
+                                <th style="cursor: pointer;" onclick="sortTable(0, 'alphanum')">
+                                    Bàn <i class="bi bi-arrow-down-up text-muted ms-1 small"></i>
+                                </th>
+                                <th style="cursor: pointer;" onclick="sortTable(1, 'number')">
+                                    Sức chứa <i class="bi bi-arrow-down-up text-muted ms-1 small"></i>
+                                </th>
+                                <th style="cursor: pointer;" onclick="sortTable(2, 'string')">
+                                    Trạng thái <i class="bi bi-arrow-down-up text-muted ms-1 small"></i>
+                                </th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <!-- Gắn id="tableBody" để JS tìm được dữ liệu -->
+                        <tbody id="tableBody">
+                            {% for table in tables %}
+                            <tr>
+                                <td>{{ table.TableNumber }}</td>
+                                <td>{{ table.Capacity }}</td>
+                                <td>
+                                    <span class="badge {% if table.Status == 'Available' %}bg-success{% elif table.Status == 'Reserved' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ table.Status }}</span>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="editTable({{ table.TableID }}, '{{ table.TableNumber | replace("'", "\\'") }}', {{ table.Capacity }}, '{{ table.Status }}')">Sửa</button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">Chưa có bàn được tạo.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Thêm / Cập nhật bàn</h5>
+            </div>
+            <div class="card-body">
+                <form id="tableForm">
+                    <input type="hidden" id="tableId" value="">
+                    <div class="mb-3">
+                        <label class="form-label">Số bàn</label>
+                        <input id="tableNumber" class="form-control" type="text" placeholder="Nhập số bàn" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Sức chứa</label>
+                        <!-- Thêm min="1" và max="10" để giới hạn số lượng nhập -->
+                        <input id="tableCapacity" class="form-control" type="number" min="1" max="10" placeholder="Nhập sức chứa" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Trạng thái</label>
+                        <select id="tableStatus" class="form-select" required>
+                            <option>Available</option>
+                            <option>Reserved</option>
+                            <option>Occupied</option>
+                        </select>
+                    </div>
+                    <button id="tableSubmit" class="btn btn-primary">Thêm bàn</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Kịch bản JS xử lý Sắp xếp ngay tại Front-end -->
+<script>
+    // Mảng lưu trạng thái sắp xếp (true = Tăng dần, false = Giảm dần)
+    let sortDirections = [true, true, true]; 
+
+    function sortTable(colIndex, type) {
+        const tbody = document.getElementById("tableBody");
+        if (!tbody) return;
+        
+        // Lấy tất cả các hàng (row) trong bảng
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        const isAsc = sortDirections[colIndex];
+        
+        rows.sort((a, b) => {
+            // Lấy nội dung text của cột đang click
+            let valA = a.cells[colIndex].innerText.trim();
+            let valB = b.cells[colIndex].innerText.trim();
+
+            if (type === 'number') {
+                // Sắp xếp theo số (Sức chứa)
+                return isAsc ? (Number(valA) - Number(valB)) : (Number(valB) - Number(valA));
+            } 
+            else if (type === 'alphanum') {
+                // Sắp xếp thông minh cho "Bàn 1", "Bàn 10" (Cắt bỏ chữ, chỉ lấy số)
+                let numA = parseInt(valA.replace(/\D/g, '')) || 0;
+                let numB = parseInt(valB.replace(/\D/g, '')) || 0;
+                return isAsc ? (numA - numB) : (numB - numA);
+            } 
+            else {
+                // Sắp xếp theo chữ cái (Trạng thái)
+                return isAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            }
+        });
+
+        // Đảo ngược trạng thái cho lần click tiếp theo
+        sortDirections[colIndex] = !isAsc;
+
+        // Xóa bảng cũ và dán các hàng đã sắp xếp vào lại
+        tbody.innerHTML = '';
+        rows.forEach(row => tbody.appendChild(row));
+    }
+</script>
+{% endblock %}

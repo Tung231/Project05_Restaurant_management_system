@@ -1,0 +1,270 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Quản lý thực đơn - NEU Admin{% endblock %}
+{% block page_title %}Quản lý thực đơn{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Danh sách món ăn</h5>
+                <select id="categoryFilter" class="form-select form-select-sm w-auto" onchange="filterMenu()">
+                    <option value="all">-- Tất cả danh mục --</option>
+                    </select>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Món</th>
+                                <th>Giá</th>
+                                <th>Danh mục</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="menuTableBody">
+                            {% for item in menu_items %}
+                            <tr class="menu-row">
+                                <td>{{ item.DishID }}</td>
+                                <td class="fw-bold">{{ item.DishName }}</td>
+                                <td>{{ "{:,.0f}".format(item.Price).replace(',', '.') }}</td>
+                                <td class="target-category">{{ item.CategoryName }}</td>
+                                <td>
+                                    {% if item.IsAvailable %}
+                                        <span class="badge bg-success">Còn hàng</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Hết hàng</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary btn-edit-menu" 
+                                            data-id="{{ item.DishID }}"
+                                            data-name="{{ item.DishName }}"
+                                            data-price="{{ item.Price }}"
+                                            data-category="{{ item.CategoryID }}"
+                                            data-available="{{ '1' if item.IsAvailable else '0' }}">Sửa</button>
+                                    <button class="btn btn-sm btn-outline-danger ms-1 btn-delete-menu" 
+                                            data-id="{{ item.DishID }}">Xóa</button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">Chưa có món ăn nào.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 position-sticky" style="top: 20px;">
+            <div class="card-header bg-white">
+                <h5 class="mb-0" id="formTitle">Thêm / Sửa món</h5>
+            </div>
+            <div class="card-body">
+                <form id="menuForm">
+                    <input type="hidden" id="menuId">
+                    <div class="mb-3">
+                        <label class="form-label">Tên món</label>
+                        <input id="menuName" class="form-control" type="text" placeholder="Nhập tên món" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Giá</label>
+                        <input id="menuPrice" class="form-control" type="number" placeholder="Nhập giá" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Danh mục</label>
+                        <select id="menuCategory" class="form-select" required>
+                            <option value="">Chọn danh mục</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.CategoryID }}">{{ cat.CategoryName }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Trạng thái</label>
+                        <select id="menuIsAvailable" class="form-select" required>
+                            <option value="1">Còn hàng</option>
+                            <option value="0">Hết hàng</option>
+                        </select>
+                    </div>
+                    
+                    <button type="button" class="btn btn-primary w-100 mb-2 fw-bold" id="btnSubmitMenu" onclick="saveMenu()">Thêm món</button>
+                    <button type="button" class="btn btn-secondary w-100 d-none" id="btnCancelEdit" onclick="resetMenuForm()">Hủy sửa</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let isSubmittingMenu = false; 
+
+// ==========================================
+// 1. TÍNH NĂNG LỌC DANH MỤC THỰC ĐƠN
+// ==========================================
+document.addEventListener("DOMContentLoaded", function() {
+    const categorySet = new Set();
+    
+    document.querySelectorAll('.target-category').forEach(td => {
+        if(td.innerText.trim() !== "") {
+            categorySet.add(td.innerText.trim());
+        }
+    });
+    
+    const filterSelect = document.getElementById('categoryFilter');
+    categorySet.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.text = cat;
+        filterSelect.appendChild(option);
+    });
+});
+
+function filterMenu() {
+    const filterVal = document.getElementById('categoryFilter').value;
+    const rows = document.querySelectorAll('.menu-row');
+    
+    rows.forEach(row => {
+        const cat = row.querySelector('.target-category').innerText.trim();
+        if (filterVal === 'all' || cat === filterVal) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// ==========================================
+// 2. NẠP DỮ LIỆU KHI BẤM SỬA
+// ==========================================
+document.querySelectorAll('.btn-edit-menu').forEach(button => {
+    button.addEventListener('click', function() {
+        document.getElementById('menuId').value = this.getAttribute('data-id');
+        document.getElementById('menuName').value = this.getAttribute('data-name');
+        document.getElementById('menuPrice').value = this.getAttribute('data-price');
+        document.getElementById('menuCategory').value = this.getAttribute('data-category');
+        document.getElementById('menuIsAvailable').value = this.getAttribute('data-available');
+        
+        const btnSubmit = document.getElementById('btnSubmitMenu');
+        btnSubmit.innerText = 'Cập nhật món';
+        btnSubmit.classList.replace('btn-primary', 'btn-success');
+        document.getElementById('btnCancelEdit').classList.remove('d-none');
+        document.getElementById('formTitle').innerText = 'Sửa món ăn';
+    });
+});
+
+// ==========================================
+// 3. RESET FORM
+// ==========================================
+function resetMenuForm() {
+    document.getElementById('menuId').value = '';
+    document.getElementById('menuForm').reset();
+    
+    const btnSubmit = document.getElementById('btnSubmitMenu');
+    btnSubmit.innerText = 'Thêm món';
+    btnSubmit.classList.replace('btn-success', 'btn-primary');
+    document.getElementById('btnCancelEdit').classList.add('d-none');
+    document.getElementById('formTitle').innerText = 'Thêm món mới';
+}
+
+// ==========================================
+// 4. LƯU MÓN ĂN (SWEETALERT2 + CHỐNG SPAM)
+// ==========================================
+async function saveMenu() {
+    const name = document.getElementById('menuName').value.trim();
+    const price = document.getElementById('menuPrice').value.trim();
+    const category_id = document.getElementById('menuCategory').value;
+    const is_available = document.getElementById('menuIsAvailable').value === "1";
+
+    if (!name || !price || !category_id) {
+        Swal.fire('Thông báo', 'Vui lòng điền đầy đủ Tên món, Giá và Danh mục!', 'warning');
+        return;
+    }
+
+    if (isSubmittingMenu) return;
+    isSubmittingMenu = true;
+
+    const btnSubmit = document.getElementById('btnSubmitMenu');
+    btnSubmit.disabled = true;
+    btnSubmit.innerText = 'Đang xử lý...';
+
+    const id = document.getElementById('menuId').value;
+    const data = { name, price, category_id, is_available };
+
+    const url = id ? `/api/menu/${id}` : '/api/menu';
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        
+        if (res.ok && result.status === 'success') {
+            Swal.fire({
+                icon: 'success',
+                title: id ? 'Đã cập nhật món!' : 'Đã thêm món mới!',
+                showConfirmButton: false,
+                timer: 1500
+            }).then(() => window.location.reload());
+        } else {
+            Swal.fire('Có lỗi xảy ra', result.message || 'Không xác định', 'error');
+            isSubmittingMenu = false;
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = id ? 'Cập nhật món' : 'Thêm món';
+        }
+    } catch (error) {
+        console.error('Lỗi:', error);
+        Swal.fire('Lỗi', 'Không thể kết nối Server!', 'error');
+        isSubmittingMenu = false;
+        btnSubmit.disabled = false;
+        btnSubmit.innerText = id ? 'Cập nhật món' : 'Thêm món';
+    }
+}
+
+// ==========================================
+// 5. XÓA MÓN ĂN (SWEETALERT2)
+// ==========================================
+document.querySelectorAll('.btn-delete-menu').forEach(button => {
+    button.addEventListener('click', function() {
+        const id = this.getAttribute('data-id');
+        
+        Swal.fire({
+            title: 'Bạn có chắc chắn?',
+            text: "Nếu xóa, món này sẽ biến mất khỏi thực đơn!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Đồng ý xóa',
+            cancelButtonText: 'Hủy'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/api/menu/${id}`, { method: 'DELETE' });
+                    const resData = await response.json();
+                    
+                    if (response.ok && resData.status === 'success') {
+                        Swal.fire('Đã xóa!', 'Món ăn đã được gỡ bỏ.', 'success').then(() => window.location.reload());
+                    } else {
+                        Swal.fire('Không thể xóa!', resData.message || 'Món ăn này đã có trong Hóa đơn của khách!', 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Lỗi', 'Mất kết nối với máy chủ.', 'error');
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
