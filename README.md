@@ -8,12 +8,35 @@
 ## 📌 Introduction
 The **NEU Restaurant Management System** is a digitized, highly normalized (BCNF) web-based ERP solution tailored for the Food and Beverage industry. Built with **FastAPI** and **MySQL**, the system focuses on resolving traditional operational bottlenecks such as table double-booking, billing errors, and unauthorized data access.
 
-### ✨ Key Features
-* **Intelligent Reservation Engine:** Implements a backend temporal validation algorithm (± 2-hour window) to autonomously prevent table booking conflicts.
-* **Integrated Mini-POS:** A split-screen billing interface with dynamic Client-Side State Management (JS Cart) and 80mm thermal receipt generation.
-* **Advanced Database Architecture:** Utilizes SQL Triggers for automated physical table state management and User-Defined Functions (UDFs) for absolute financial precision.
-* **Multi-Layered RBAC:** Enforces strict Role-Based Access Control (Manager, Cashier, Waiter) simultaneously at the MySQL engine layer and the Frontend DOM.
-* **Real-time Analytics:** Interactive Dashboard rendering business insights using `Chart.js`.
+---
+
+## 💻 Tech Stack
+* **Backend:** Python 3, FastAPI, Uvicorn
+* **Database:** MySQL 8.0, mysql-connector-python
+* **Frontend:** HTML5, CSS3, Vanilla JavaScript, Bootstrap 5
+* **Libraries & Tools:** * *Data Validation:* Pydantic
+  * *Mock Data Generation:* Faker
+  * *Analytics & UI:* Chart.js, SweetAlert2, Jinja2
+
+---
+
+## 📸 System Screenshots
+
+### Analytics Dashboard
+> *(Bạn thêm link ảnh Dashboard thực tế vào đây)*
+![Admin Dashboard](docs/dashboard_screenshot.png)
+
+### Integrated Mini-POS & Conflict-Free Reservations
+> *(Bạn thêm link ảnh POS và Đặt bàn vào đây)*
+![Mini-POS Interface](docs/pos_screenshot.png)
+
+---
+
+## 🗄️ Database Architecture
+The system is built on a strictly normalized database schema containing 8 core entities, secured by Role-Based Access Control (RBAC) and automated SQL Triggers.
+
+![Entity Relationship Diagram](docs/01_ER_Diagram.png)
+*(Conceptual Entity-Relationship Diagram)*
 
 ---
 
@@ -37,55 +60,46 @@ Project05_Restaurant_management_system/
 │   ├── schema.sql              # Core DDL for 8 normalized tables
 │   ├── advanced_objects.sql    # Views, Triggers, Procedures, UDFs
 │   └── security_and_roles.sql  # DCL for database-level user roles
-├── docs/               # ERD and Architectural diagrams
+├── docs/               
+│   ├── 01_ER_Diagram.png       # Entity Relationship Diagram
+│   └── 02_Relational_Schema.png# Relational Schema Design
 ├── .env.example        # Environment variables template
 ├── .gitignore          
 ├── requirements.txt    # Python dependencies
-└── README.md
+└── README.md           
+```
+
+---
 
 ## 🛠️ Installation & Setup Guide
 
 Follow these steps to set up and run the project on your local machine.
 
----
-
 ### 1. Clone the Repository
-
 ```bash
 git clone https://github.com/Tung231/Project05_Restaurant_management_system.git
 cd Project05_Restaurant_management_system
 ```
 
----
-
 ### 2. Set Up Virtual Environment
-
 It is recommended to use a virtual environment to manage dependencies.
-
 ```bash
 python -m venv venv
 ```
-
-- **Windows:** `venv\Scripts\activate`
-- **macOS/Linux:** `source venv/bin/activate`
-
----
+* **Activate on Windows:** `venv\Scripts\activate`
+* **Activate on macOS/Linux:** `source venv/bin/activate`
 
 ### 3. Install Dependencies
-
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
 ### 4. Database Configuration
-
 1. Open your MySQL client (e.g., MySQL Workbench).
 2. Execute the SQL scripts located in the `database/` folder **in this exact order**:
-   - `schema.sql` — Creates DB and Tables
-   - `advanced_objects.sql` — Creates Views, UDFs, Triggers
-   - `security_and_roles.sql` — Sets up roles and permissions
+   * `schema.sql` (Creates DB and Tables)
+   * `advanced_objects.sql` (Creates Views, UDFs, Triggers)
+   * `security_and_roles.sql` (Sets up roles and permissions)
 3. Create a `.env` file in the root directory (alongside `main.py`) and configure your MySQL credentials:
 
 ```ini
@@ -96,31 +110,18 @@ DB_PASSWORD=your_mysql_password
 DB_NAME=RestaurantManagement
 ```
 
----
-
-### 5. Generate Mock Data *(Highly Recommended)*
-
+### 5. Generate Mock Data (Highly Recommended)
 To test the analytical dashboards and reservation algorithms, populate the database with realistic mock data using the included Faker script:
-
 ```bash
 python app/master_seeder.py
 ```
-
-> **Note:** This will generate **500+ rows** of data including staff, customers, reservations, and invoices.
-
----
+*Note: This will generate over 500+ rows including staff, customers, reservations, and invoices.*
 
 ### 6. Run the Application
-
 Start the FastAPI server using Uvicorn:
-
 ```bash
 uvicorn app.main:app --reload
 ```
-
-Once running, open your browser and navigate to:
-
-| Portal | URL |
-|--------|-----|
-| 🌐 Customer Portal (Public) | `http://127.0.0.1:8000/` |
-| 🔐 Staff Login Portal | `http://127.0.0.1:8000/login` |
+Once running, open your web browser and navigate to:
+* **Customer Portal (Public):** `http://127.0.0.1:8000/`
+* **Staff Login Portal:** `http://127.0.0.1:8000/login`
