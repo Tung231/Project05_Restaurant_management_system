@@ -8,8 +8,6 @@
 ## 📌 Introduction
 The **NEU Restaurant Management System** is a digitized, highly normalized (BCNF) web-based ERP solution tailored for the Food and Beverage industry. Built with **FastAPI** and **MySQL**, the system focuses on resolving traditional operational bottlenecks such as table double-booking, billing errors, and unauthorized data access.
 
----
-
 ## 💻 Tech Stack
 * **Backend:** Python 3, FastAPI, Uvicorn
 * **Database:** MySQL 8.0, mysql-connector-python
@@ -17,8 +15,6 @@ The **NEU Restaurant Management System** is a digitized, highly normalized (BCNF
 * **Libraries & Tools:** * *Data Validation:* Pydantic
   * *Mock Data Generation:* Faker
   * *Analytics & UI:* Chart.js, SweetAlert2, Jinja2
-
----
 
 ## 📸 System Screenshots
 
@@ -30,15 +26,11 @@ The **NEU Restaurant Management System** is a digitized, highly normalized (BCNF
 > *(Bạn thêm link ảnh POS và Đặt bàn vào đây)*
 ![Mini-POS Interface](docs/pos_screenshot.png)
 
----
-
 ## 🗄️ Database Architecture
 The system is built on a strictly normalized database schema containing 8 core entities, secured by Role-Based Access Control (RBAC) and automated SQL Triggers.
 
 ![Entity Relationship Diagram](docs/01_ER_Diagram.png)
 *(Conceptual Entity-Relationship Diagram)*
-
----
 
 ## 📂 Directory Structure
 
@@ -68,8 +60,6 @@ Project05_Restaurant_management_system/
 ├── requirements.txt    # Python dependencies
 └── README.md           
 ```
-
----
 
 ## 🛠️ Installation & Setup Guide
 
