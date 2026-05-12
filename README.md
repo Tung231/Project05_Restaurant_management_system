@@ -28,8 +28,8 @@ The **NEU Restaurant Management System** is a digitized, highly normalized (BCNF
 ## Database Architecture
 The system is built on a strictly normalized database schema containing 8 core entities, secured by Role-Based Access Control (RBAC) and automated SQL Triggers.
 
-*(Chèn ảnh ER Diagram vào đây)*
-*(Conceptual Entity-Relationship Diagram)*
+<img width="1018" height="668" alt="image" src="https://github.com/user-attachments/assets/09ff02d2-0bfe-403e-9f89-809f50856b01" />
+<img width="852" height="911" alt="Database_diagram" src="https://github.com/user-attachments/assets/e09aae02-7d67-44c7-a543-ff8b8f98b5e5" />
 
 ## Directory Structure
 
@@ -48,12 +48,13 @@ Project05_Restaurant_management_system/
 │   ├── main.py         # FastAPI application entry point
 │   └── master_seeder.py# Automated data seeding script (500+ records)
 ├── database/           
-│   ├── schema.sql              # Core DDL for 8 normalized tables
-│   ├── advanced_objects.sql    # Views, Triggers, Procedures, UDFs
-│   └── security_and_roles.sql  # DCL for database-level user roles
-├── docs/               
-│   ├── 01_ER_Diagram.png       # Entity Relationship Diagram
-│   └── 02_Relational_Schema.png# Relational Schema Design
+│   ├── schema.sql               # Core DDL for 8 normalized tables
+│   ├── advanced_objects.sql     # Views, Triggers, Procedures, UDFs
+│   └── security_and_roles.sql   # DCL for database-level user roles
+├── docs/
+│   └── Database_diagram.png     # ER Diagram exported from MySQL Workbench           
+│   ├── ER_Diagram.png        # Entity Relationship Diagram
+│   └── Relational_Schema.png # Relational Schema Design
 ├── .env.example        # Environment variables template
 ├── .gitignore          
 ├── requirements.txt    # Python dependencies
