@@ -1,14 +1,14 @@
-# 🍽️ NEU Restaurant Management System (Project 05)
+# NEU Restaurant Management System (Project 05)
 
 ![Python](https://img.shields.io/badge/Python-3.x-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-orange.svg)
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-purple.svg)
 
-## 📌 Introduction
+## Introduction
 The **NEU Restaurant Management System** is a digitized, highly normalized (BCNF) web-based ERP solution tailored for the Food and Beverage industry. Built with **FastAPI** and **MySQL**, the system focuses on resolving traditional operational bottlenecks such as table double-booking, billing errors, and unauthorized data access.
 
-## 💻 Tech Stack
+## Tech Stack
 * **Backend:** Python 3, FastAPI, Uvicorn
 * **Database:** MySQL 8.0, mysql-connector-python
 * **Frontend:** HTML5, CSS3, Vanilla JavaScript, Bootstrap 5
@@ -16,38 +16,36 @@ The **NEU Restaurant Management System** is a digitized, highly normalized (BCNF
   * *Mock Data Generation:* Faker
   * *Analytics & UI:* Chart.js, SweetAlert2, Jinja2
 
-## 📸 System Screenshots
+## System Screenshots
 
 ### Analytics Dashboard
-> *(Bạn thêm link ảnh Dashboard thực tế vào đây)*
-![Admin Dashboard](docs/dashboard_screenshot.png)
+*(Chèn ảnh Dashboard thực tế vào đây)*
 
 ### Integrated Mini-POS & Conflict-Free Reservations
-> *(Bạn thêm link ảnh POS và Đặt bàn vào đây)*
-![Mini-POS Interface](docs/pos_screenshot.png)
+*(Chèn ảnh POS và Đặt bàn vào đây)*
 
-## 🗄️ Database Architecture
+## Database Architecture
 The system is built on a strictly normalized database schema containing 8 core entities, secured by Role-Based Access Control (RBAC) and automated SQL Triggers.
 
-![Entity Relationship Diagram](docs/01_ER_Diagram.png)
+*(Chèn ảnh ER Diagram vào đây)*
 *(Conceptual Entity-Relationship Diagram)*
 
-## 📂 Directory Structure
+## Directory Structure
 
 The project strictly adheres to a 3-Tier Architecture model:
 
 ```text
 Project05_Restaurant_management_system/
 ├── app/
-│   ├── core/           # ⚙️ Database configurations & Connection Pooling
-│   ├── crud/           # 🛡️ Data Access Object (DAO) layer (MySQL queries)
-│   ├── routers/        # 🛣️ FastAPI RESTful endpoints
-│   ├── schemas/        # 🧱 Pydantic models for strict data validation
-│   ├── scripts/        # 🤖 Utility scripts (Faker data generation)
-│   ├── static/         # 🎨 CSS, JS, and Images (Client-side Cart Logic)
-│   ├── templates/      # 🖥️ Jinja2 HTML Templates (UI & RBAC Views)
-│   ├── main.py         # 🚀 FastAPI application entry point
-│   └── master_seeder.py# 🏭 Automated data seeding script (500+ records)
+│   ├── core/           # Database configurations & Connection Pooling
+│   ├── crud/           # Data Access Object (DAO) layer (MySQL queries)
+│   ├── routers/        # FastAPI RESTful endpoints
+│   ├── schemas/        # Pydantic models for strict data validation
+│   ├── scripts/        # Utility scripts (Faker data generation)
+│   ├── static/         # CSS, JS, and Images
+│   ├── templates/      # Jinja2 HTML Templates (UI & RBAC Views)
+│   ├── main.py         # FastAPI application entry point
+│   └── master_seeder.py# Automated data seeding script (500+ records)
 ├── database/           
 │   ├── schema.sql              # Core DDL for 8 normalized tables
 │   ├── advanced_objects.sql    # Views, Triggers, Procedures, UDFs
@@ -58,8 +56,7 @@ Project05_Restaurant_management_system/
 ├── .env.example        # Environment variables template
 ├── .gitignore          
 ├── requirements.txt    # Python dependencies
-└── README.md           
-```
+└── README.md
 
 ## 🛠️ Installation & Setup Guide
 
@@ -113,5 +110,4 @@ Start the FastAPI server using Uvicorn:
 uvicorn app.main:app --reload
 ```
 Once running, open your web browser and navigate to:
-* **Customer Portal (Public):** `http://127.0.0.1:8000/`
-* **Staff Login Portal:** `http://127.0.0.1:8000/login`
+* **Staff Management Portal:** `http://127.0.0.1:8000/`
