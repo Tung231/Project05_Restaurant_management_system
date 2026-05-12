@@ -57,6 +57,7 @@ Project05_Restaurant_management_system/
 ├── .gitignore          
 ├── requirements.txt    # Python dependencies
 └── README.md
+```
 
 ## 🛠️ Installation & Setup Guide
 
