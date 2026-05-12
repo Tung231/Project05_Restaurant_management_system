@@ -19,10 +19,11 @@ The **NEU Restaurant Management System** is a digitized, highly normalized (BCNF
 ## System Screenshots
 
 ### Analytics Dashboard
-*(Chèn ảnh Dashboard thực tế vào đây)*
+<img width="1910" height="896" alt="image" src="https://github.com/user-attachments/assets/0dd8e9d9-df10-46b6-ad0e-31265b0eda65" />
 
 ### Integrated Mini-POS & Conflict-Free Reservations
-*(Chèn ảnh POS và Đặt bàn vào đây)*
+<img width="1906" height="910" alt="image" src="https://github.com/user-attachments/assets/da86f5a1-ebde-4109-adb1-086e43d4b4f5" />
+<img width="1904" height="911" alt="image" src="https://github.com/user-attachments/assets/6ce42b8d-2162-4697-8f48-3610ac526648" />
 
 ## Database Architecture
 The system is built on a strictly normalized database schema containing 8 core entities, secured by Role-Based Access Control (RBAC) and automated SQL Triggers.
