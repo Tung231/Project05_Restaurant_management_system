@@ -8,13 +8,23 @@
 ## Introduction
 The **NEU Restaurant Management System** is a digitized, highly normalized (BCNF) web-based ERP solution tailored for the Food and Beverage industry. Built with **FastAPI** and **MySQL**, the system focuses on resolving traditional operational bottlenecks such as table double-booking, billing errors, and unauthorized data access.
 
+## Key Features
+* **Intelligent Reservation Engine:** Implements a backend temporal validation algorithm (± 2-hour window) to autonomously prevent table booking conflicts.
+* **Integrated Mini-POS:** A billing interface with dynamic Client-Side State Management (JS Cart), zero-trust price validation, and 80mm thermal receipt generation.
+* **Multi-Layered RBAC:** Enforces strict Role-Based Access Control (Admin, Cashier, Waiter) simultaneously at the MySQL engine layer and the Frontend DOM.
+* **Advanced Database Automation:** Utilizes SQL Triggers for automated physical table state management and User-Defined Functions (UDFs) for absolute financial precision.
+* **Real-time Analytics Dashboard:** An interactive administrative dashboard rendering business insights, table utilization, and VIP customer rankings using `Chart.js`.
+
 ## Tech Stack
-* **Backend:** Python 3, FastAPI, Uvicorn
-* **Database:** MySQL 8.0, mysql-connector-python
-* **Frontend:** HTML5, CSS3, Vanilla JavaScript, Bootstrap 5
-* **Libraries & Tools:** * *Data Validation:* Pydantic
-  * *Mock Data Generation:* Faker
-  * *Analytics & UI:* Chart.js, SweetAlert2, Jinja2
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | Python 3, FastAPI, Uvicorn |
+| Database | MySQL 8.0, mysql-connector-python |
+| Frontend | HTML5, CSS3, Vanilla JavaScript, Bootstrap 5 |
+| Data Validation | Pydantic |
+| Mock Data | Faker |
+| Analytics & UI | Chart.js, SweetAlert2, Jinja2 |
 
 ## System Screenshots
 
@@ -52,7 +62,7 @@ Project05_Restaurant_management_system/
 │   ├── advanced_objects.sql     # Views, Triggers, Procedures, UDFs
 │   └── security_and_roles.sql   # DCL for database-level user roles
 ├── docs/
-│   └── Database_diagram.png     # ER Diagram exported from MySQL Workbench           
+│   ├── Database_diagram.png     # ER Diagram exported from MySQL Workbench           
 │   ├── ER_Diagram.png        # Entity Relationship Diagram
 │   └── Relational_Schema.png # Relational Schema Design
 ├── .env.example        # Environment variables template
@@ -112,5 +122,12 @@ Start the FastAPI server using Uvicorn:
 ```bash
 uvicorn app.main:app --reload
 ```
-Once running, open your web browser and navigate to:
-* **Staff Management Portal:** `http://127.0.0.1:8000/`
+Once running, open your web browser and navigate to: `http://127.0.0.1:8000/`
+
+## 👤 Author
+
+| Name | Student ID | Class |
+|------|-----------|-------|
+| Bui Son Tung | 11245948 | DSEB 66B |
+
+> Final project for **Database Management Systems** — National Economics University (NEU)
