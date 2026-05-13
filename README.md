@@ -62,9 +62,7 @@ Project05_Restaurant_management_system/
 │   ├── advanced_objects.sql     # Views, Triggers, Procedures, UDFs
 │   └── security_and_roles.sql   # DCL for database-level user roles
 ├── docs/
-│   ├── Database_diagram.png     # ER Diagram exported from MySQL Workbench           
-│   ├── ER_Diagram.png        # Entity Relationship Diagram
-│   └── Relational_Schema.png # Relational Schema Design
+│   ├── Database_diagram.png     # ER Diagram exported from MySQL Workbench          
 ├── .env.example        # Environment variables template
 ├── .gitignore          
 ├── requirements.txt    # Python dependencies
